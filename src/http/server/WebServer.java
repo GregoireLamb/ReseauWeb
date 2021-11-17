@@ -89,6 +89,22 @@ public class WebServer {
     out.println("<H1>Welcome to the Ultra Mini-WebServer</H2>");
   }
 
+  public void doPost(){
+
+  }
+
+  public void doDelete(){
+
+  }
+
+  public void doPut(){
+
+  }
+
+  public void dohead(){
+
+  }
+
   public void doGet(){
     File file;
     if(ressourceExist(ressourceAsked)){
@@ -163,6 +179,14 @@ public class WebServer {
         System.out.println("************");
         switch (method){
           case "GET":
+            doGet();
+          case "PUT":
+            doGet();
+          case "DELETE":
+            doGet();
+          case "POST":
+            doGet();
+          case "HEAD":
             doGet();
           default:
             defaultMethod();
