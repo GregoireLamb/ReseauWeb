@@ -14,9 +14,7 @@ import java.net.Socket;
 import java.util.Date;
 import java.util.StringTokenizer;
 
-// The tutorial can be found just here on the SSaurel's Blog :
-// https://www.ssaurel.com/blog/create-a-simple-http-web-server-in-java
-// Each Client Connection will be managed in a dedicated Thread
+
 public class JavaHTTPServer implements Runnable{
 
     static final File WEB_ROOT = new File("./doc/");
@@ -96,7 +94,7 @@ public class JavaHTTPServer implements Runnable{
 
                 // we send HTTP Headers with data to client
                 out.println("HTTP/1.1 501 Not Implemented");
-                out.println("Server: Java HTTP Server from SSaurel : 1.0");
+                out.println("Server: Java HTTP Server from GregLamb : 1.0");
                 out.println("Date: " + new Date());
                 out.println("Content-type: " + contentMimeType);
                 out.println("Content-length: " + fileLength);
@@ -121,7 +119,7 @@ public class JavaHTTPServer implements Runnable{
 
                     // send HTTP Headers
                     out.println("HTTP/1.1 200 OK");
-                    out.println("Server: Java HTTP Server from SSaurel : 1.0");
+                    out.println("Server: Java HTTP Server from GregLamb : 1.0");
                     out.println("Date: " + new Date());
                     out.println("Content-type: " + content);
                     out.println("Content-length: " + fileLength);
@@ -184,6 +182,10 @@ public class JavaHTTPServer implements Runnable{
     private String getContentType(String fileRequested) {
         if (fileRequested.endsWith(".htm")  ||  fileRequested.endsWith(".html"))
             return "text/html";
+        else if (fileRequested.endsWith(".png")  ||  fileRequested.endsWith(".jpeg") ||  fileRequested.endsWith(".jpg"))
+            return "Image";
+        else if (fileRequested.endsWith(".mp3"))
+            return "audio";
         else
             return "text/plain";
     }
@@ -195,7 +197,7 @@ public class JavaHTTPServer implements Runnable{
         byte[] fileData = readFileData(file, fileLength);
 
         out.println("HTTP/1.1 404 File Not Found");
-        out.println("Server: Java HTTP Server from SSaurel : 1.0");
+        out.println("Server: Java HTTP Server from GregLamb : 1.0");
         out.println("Date: " + new Date());
         out.println("Content-type: " + content);
         out.println("Content-length: " + fileLength);
