@@ -6,7 +6,12 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 /**
@@ -31,8 +36,12 @@ public class WebServer {
 
   }
 
+  public String getNow(){
+    SimpleDateFormat sdf=new SimpleDateFormat("EEE dd MMM yyyy HH:mm:ss zzz", Locale.FRANCE);
+    Date now= new Date();
+    return sdf.format(now);
+  }
   public void sendFileInBytes(File file){
-
     try {
       byte[] data = readFileData(file, (int) file.length());
       outByte.write(data,0,(int)file.length());
@@ -52,7 +61,6 @@ public class WebServer {
 
   public void treatRequest(){
     if(!request.isEmpty()){
-      System.out.println("Request treated");
       StringTokenizer convertRequest=new StringTokenizer(request);
       method=convertRequest.nextToken();
       ressourceAsked=convertRequest.nextToken();
@@ -81,12 +89,13 @@ public class WebServer {
     // Send the response
     // Send the headers
     out.println("HTTP/1.0 200 OK");
+    out.println("Date:"+getNow());
     out.println("Content-Type: text/html");
     out.println("Server: Bot");
     // this blank line signals the end of the headers
     out.println("");
     // Send the HTML page
-    out.println("<H1>Welcome to the Ultra Mini-WebServer</H2>");
+    out.println("<h1>Welcome to the Ultra Mini-WebServer</h1>");
   }
 
   public void doPost(){
@@ -94,7 +103,24 @@ public class WebServer {
   }
 
   public void doDelete(){
-
+    if(ressourceExist(ressourceAsked)){
+        File file=new File(PATH_TO_DOC+ressourceAsked);
+        if(file.delete()){
+            // Send the headers
+            out.println("HTTP/1.0 204 No Content");
+        }else{
+          // Send the headers
+          out.println("HTTP/1.0 500 Internal Server Error");
+        }
+    }else{
+      // Send the headers
+      out.println("HTTP/1.0 404 Not Found");
+    }
+    out.println("Date:"+getNow());
+    out.println("Server: Bot");
+    // this blank line signals the end of the headers
+    out.println();
+    out.flush();
   }
 
   public void doPut(){
@@ -114,6 +140,7 @@ public class WebServer {
       // Send the response
       // Send the headers
       out.println("HTTP/1.0 200 OK");
+      out.println("Date:"+getNow());
       out.println("Content-Type: "+ content);
       out.println("Content-Length: "+file.length());
       out.println("Server: Bot");
@@ -171,7 +198,6 @@ public class WebServer {
         String str = ".";
         while (str != null && !str.equals("")) {
           str = in.readLine();
-          System.out.println(str);
           request+=str+" ";
         }
         System.out.println("************");
@@ -180,19 +206,24 @@ public class WebServer {
         switch (method){
           case "GET":
             doGet();
+            break;
           case "PUT":
-            doGet();
+            doPut();
+            break;
           case "DELETE":
-            doGet();
+            doDelete();
+            break;
           case "POST":
-            doGet();
+            doPost();
+            break;
           case "HEAD":
-            doGet();
+            dohead();
+            break;
           default:
             defaultMethod();
+            break;
         }
         remote.close();
-        System.out.println("end of request");
       } catch (Exception e) {
         System.out.println("Error: " + e);
       }
