@@ -17,7 +17,7 @@ import java.util.StringTokenizer;
 // The tutorial can be found just here on the SSaurel's Blog :
 // https://www.ssaurel.com/blog/create-a-simple-http-web-server-in-java
 // Each Client Connection will be managed in a dedicated Thread
-public class JavaHTTPServer {
+public class JavaHTTPServer implements Runnable{
 
     static final File WEB_ROOT = new File("./doc/");
     static final String DEFAULT_FILE = "index.html";
@@ -25,6 +25,9 @@ public class JavaHTTPServer {
     static final String METHOD_NOT_SUPPORTED = "not_supported.html";
     // port to listen connection
     static final int PORT = 8080;
+
+    // verbose mode
+    static final boolean verbose = true;
 
     // Client Connection via Socket Class
     private Socket connect;
@@ -34,10 +37,6 @@ public class JavaHTTPServer {
     }
 
     public static void main(String[] args) {
-
-    }
-
-    public void run(){
         try {
             ServerSocket serverConnect = new ServerSocket(PORT);
             System.out.println("Server started.\nListening for connections on port : " + PORT + " ...\n");
@@ -45,6 +44,10 @@ public class JavaHTTPServer {
             // we listen until user halts server execution
             while (true) {
                 JavaHTTPServer myServer = new JavaHTTPServer(serverConnect.accept());
+
+                if (verbose) {
+                    System.out.println("Connecton opened. (" + new Date() + ")");
+                }
 
                 // create dedicated thread to manage the client connection
                 Thread thread = new Thread(myServer);
@@ -80,6 +83,9 @@ public class JavaHTTPServer {
 
             // we support only GET and HEAD methods, we check
             if (!method.equals("GET")  &&  !method.equals("HEAD")) {
+                if (verbose) {
+                    System.out.println("501 Not Implemented : " + method + " method.");
+                }
 
                 // we return the not supported file to the client
                 File file = new File(WEB_ROOT, METHOD_NOT_SUPPORTED);
@@ -125,6 +131,11 @@ public class JavaHTTPServer {
                     dataOut.write(fileData, 0, fileLength);
                     dataOut.flush();
                 }
+
+                if (verbose) {
+                    System.out.println("File " + fileRequested + " of type " + content + " returned");
+                }
+
             }
 
         } catch (FileNotFoundException fnfe) {
@@ -144,6 +155,10 @@ public class JavaHTTPServer {
                 connect.close(); // we close socket connection
             } catch (Exception e) {
                 System.err.println("Error closing stream : " + e.getMessage());
+            }
+
+            if (verbose) {
+                System.out.println("Connection closed.\n");
             }
         }
 
@@ -190,6 +205,9 @@ public class JavaHTTPServer {
         dataOut.write(fileData, 0, fileLength);
         dataOut.flush();
 
+        if (verbose) {
+            System.out.println("File " + fileRequested + " not found");
+        }
     }
 
 }
