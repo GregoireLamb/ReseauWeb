@@ -24,22 +24,21 @@ public class WebServer {
   private String method;
   private String ressourceAsked;
   private String ressourceExtension;
-  private final String PATH_TO_DOC="doc";
+  private final String PATH_TO_DOC="./doc";
   private PrintWriter out;
   private BufferedOutputStream outByte;
   public WebServer(){
 
   }
 
-  public void sendHTMLPage(File file){
+  public void sendFileInBytes(File file){
+
     try {
-      FileInputStream fl = new FileInputStream(file);
-      byte[] arr = new byte[(int)file.length()];
-      fl.read(arr);
-      outByte.write(arr,0,(int)file.length());
+      byte[] data = readFileData(file, (int) file.length());
+      outByte.write(data,0,(int)file.length());
       outByte.flush();
-      fl.close();
-      /*BufferedReader reader = new BufferedReader(new FileReader(file));
+      /*
+      BufferedReader reader = new BufferedReader(new FileReader(file));
       String line;
       while((line=reader.readLine())!=null){
         out.println(line);
@@ -77,6 +76,7 @@ public class WebServer {
     }
     return false;
   }
+  //NOT USE
   public void defaultMethod(){
     // Send the response
     // Send the headers
@@ -90,34 +90,32 @@ public class WebServer {
   }
 
   public void doGet(){
+    File file;
     if(ressourceExist(ressourceAsked)){
-      File file=new File(PATH_TO_DOC+ressourceAsked);
+      file=new File(PATH_TO_DOC+ressourceAsked);
+      String content = getContentType(ressourceAsked);
 
-      switch (ressourceExtension){
-        case "html":
-          // Send the response
-          // Send the headers
-          out.println("HTTP/1.0 200 OK");
-          out.println("Content-Type: text/html");
-          out.println("Content-Length: "+file.length());
-          out.println("Server: Bot");
-          // this blank line signals the end of the headers
-          out.println("");
-          // Send the HTML page
-          sendHTMLPage(file);
-      }
+      // Send the response
+      // Send the headers
+      out.println("HTTP/1.0 200 OK");
+      out.println("Content-Type: "+ content);
+      out.println("Content-Length: "+file.length());
+      out.println("Server: Bot");
+      out.println();
+      // this blank line signals the end of the headers
     }else{
+      file = new File (PATH_TO_DOC+"/404.html");
       // Send the response
       // Send the headers
       out.println("HTTP/1.0 404 Not found");
       out.println("Content-Type: text/html");
       out.println("Server: Bot");
       // this blank line signals the end of the headers
-      out.println("");
-      // Send the HTML page
-      out.println("Page not found.");
+      out.println();
     }
     out.flush();
+    // Send the HTML page
+    sendFileInBytes(file);
   }
 
   /**
@@ -175,6 +173,31 @@ public class WebServer {
         System.out.println("Error: " + e);
       }
     }
+  }
+
+  private byte[] readFileData(File file, int fileLength) throws IOException {
+    FileInputStream fileIn = null;
+    byte[] fileData = new byte[fileLength];
+
+    try {
+      fileIn = new FileInputStream(file);
+      fileIn.read(fileData);
+    } finally {
+      if (fileIn != null)
+        fileIn.close();
+    }
+
+    return fileData;
+  }
+
+  // return supported MIME Types
+  private String getContentType(String fileRequested) {
+    if (fileRequested.endsWith(".png")  ||  fileRequested.endsWith(".jpeg") ||  fileRequested.endsWith(".jpg"))
+      return "Image";
+    else if (fileRequested.endsWith(".mp3"))
+      return "audio";
+    else
+      return "text";
   }
 
   /**
