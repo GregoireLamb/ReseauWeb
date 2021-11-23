@@ -271,7 +271,7 @@ public class WebServer {
     System.out.println("(press ctrl-c to exit)");
     try {
       // create the main server socket
-      s = new ServerSocket(3001);
+      s = new ServerSocket(3000);
     } catch (Exception e) {
       System.out.println("Error: " + e);
       return;
@@ -324,7 +324,7 @@ public class WebServer {
           }
           System.out.println(bodyRequest);
         }
-        
+
         switch (method){
           case "GET":
             doGet();
