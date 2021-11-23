@@ -33,7 +33,7 @@ public class WebServer {
   private String contentType;
   private int contentLength;
 
-  private final String PATH_TO_DOC="./doc";
+  private final String PATH_TO_DOC="doc";
   private PrintWriter out;
   private BufferedOutputStream outByte;
 
@@ -78,8 +78,14 @@ public class WebServer {
   public void treatRequest(){
     if(!request.isEmpty()){
       StringTokenizer convertRequest=new StringTokenizer(request);
-      method=convertRequest.nextToken();
-      ressourceAsked=convertRequest.nextToken();
+      if(convertRequest.hasMoreTokens()){
+        method=convertRequest.nextToken();
+      }
+      if(convertRequest.hasMoreTokens()){
+        ressourceAsked=convertRequest.nextToken();
+      }else{
+        ressourceAsked="";
+      }
       while(convertRequest.hasMoreTokens()){
         String str=convertRequest.nextToken();
         if(str.toLowerCase().startsWith("content-length")){
@@ -89,17 +95,20 @@ public class WebServer {
         }
       }
     }
-    /*
-    System.out.println("method: "+method);
-    System.out.println("ressource: "+ressourceAsked);
-    System.out.println("content-length: "+contentLength);
-    System.out.println("content-type: "+contentType);
-    */
+
     int i = ressourceAsked.lastIndexOf('.');
     if (i >= 0) {
       ressourceExtension = ressourceAsked.substring(i+1);
     }
+    /*
+    System.out.println("************");
+    System.out.println("method: "+method);
+    System.out.println("ressource: "+ressourceAsked);
+    System.out.println("content-length: "+contentLength);
+    System.out.println("content-type: "+contentType);
     System.out.println("ressource extension: "+ressourceExtension);
+    System.out.println("************");
+    */
   }
 
   /**
@@ -117,18 +126,24 @@ public class WebServer {
     }
     return false;
   }
-  //NOT USE
-  public void defaultMethod(){
+
+  /**
+   * Send the index to the client
+   */
+  public void index(){
     // Send the response
     // Send the headers
+    File file=new File(PATH_TO_DOC+"/index.html");
     out.println("HTTP/1.0 200 OK");
     out.println("Date:"+getNow());
     out.println("Content-Type: text/html");
+    out.println("Content-Length: " + file.length());
     out.println("Server: Bot");
     // this blank line signals the end of the headers
     out.println("");
+    out.flush();
     // Send the HTML page
-    out.println("<h1>Welcome to the Ultra Mini-WebServer</h1>");
+    sendFileInBytes(file);
   }
 
   public void doPost(){
@@ -142,10 +157,13 @@ public class WebServer {
    *  - 204 : file deleted, no content
    *  - 500 : file not deleted, internal server error
    *  - 404 : file not deleted, not found
+   *  - 403 : forbidden
    */
   public void doDelete(){
-    // if the ressource exists
-    if(ressourceExist(ressourceAsked)){
+    if(ressourceAsked.startsWith("/admin")){
+        out.println("HTTP/1.0 403 Forbidden");
+        // If the ressource exists
+    }else if(ressourceExist(ressourceAsked)){
         File file=new File(PATH_TO_DOC+ressourceAsked);
         // Attempt to delete the file
         if(file.delete()){
@@ -156,8 +174,8 @@ public class WebServer {
           out.println("HTTP/1.0 500 Internal Server Error");
         }
     }else{
-      // Send the headers
-      out.println("HTTP/1.0 404 Not Found");
+        // Send the headers
+        out.println("HTTP/1.0 404 Not Found");
     }
     out.println("Date:"+getNow());
     out.println("Server: Bot");
@@ -174,11 +192,14 @@ public class WebServer {
    *  - 204 : file overwrite, no content
    *  - 201 : file created
    *  - 500 : internal server error
+   *  - 403 : forbidden
    */
-  public void doPut(){
+  public void doPut() {
     FileWriter fileWriter;
+    if(ressourceAsked.startsWith("/admin")){
+      out.println("HTTP/1.0 403 Forbidden");
     // If the ressource exists
-    if(ressourceExist(ressourceAsked)){
+    }else if(ressourceExist(ressourceAsked)){
       File file=new File(PATH_TO_DOC+ressourceAsked);
       try {
         // Overwrite the existing file with the body request
@@ -222,8 +243,52 @@ public class WebServer {
     out.flush();
   }
 
+  /**
+   * METHOD HTTP HEAD
+   * Send only the header of the ressource specified in the URL
+   * The header is the same as the method GET
+   * Returns :
+   *  - 200 : file sent, ok
+   *  - 404 : file not found
+   *  - 403 : forbidden
+   */
   public void doHead(){
-
+    File file=new File(PATH_TO_DOC+"/index.html");
+    if(ressourceAsked.equals("/")){
+      out.println("HTTP/1.0 200 OK");
+      out.println("Date:"+getNow());
+      out.println("Content-Type: text/html");
+      out.println("Content-Length: " + file.length());
+    }else{
+      if(ressourceExist(ressourceAsked)){
+        if(ressourceAsked.startsWith("/admin")) {
+          file = new File(PATH_TO_DOC + "/403.html");
+          // Send the headers
+          out.println("HTTP/1.0 403 Forbidden");
+          out.println("Date:" + getNow());
+          out.println("Content-Type: text/html");
+        }else{
+          file=new File(PATH_TO_DOC+ressourceAsked);
+          String content = getContentType(ressourceAsked);
+          // Send the headers
+          out.println("HTTP/1.0 200 OK");
+          out.println("Date:" + getNow());
+          out.println("Content-Type: "+content);
+        }
+      }else{
+        file = new File (PATH_TO_DOC+"/404.html");
+        // Send the response
+        // Send the headers
+        out.println("HTTP/1.0 404 Not found");
+        out.println("Date:"+getNow());
+        out.println("Content-Type: text/html");
+      }
+    }
+    out.println("Content-Length: " + file.length());
+    out.println("Server: Bot");
+    // this blank line signals the end of the headers
+    out.println();
+    out.flush();
   }
 
   /**
@@ -232,37 +297,73 @@ public class WebServer {
    * Returns :
    *  - 200 : file sent, ok
    *  - 404 : file not found
+   *  - 403 : forbidden
    */
   public void doGet(){
-    File file;
-    if(ressourceExist(ressourceAsked)){
-      file=new File(PATH_TO_DOC+ressourceAsked);
-      String content = getContentType(ressourceAsked);
-
-      // Send the response
-      // Send the headers
-      out.println("HTTP/1.0 200 OK");
-      out.println("Date:"+getNow());
-      out.println("Content-Type: "+ content);
-      out.println("Content-Length: "+file.length());
-      out.println("Server: Bot");
-      out.println();
-      // this blank line signals the end of the headers
+    System.out.println("get called");
+    System.out.println("ressource "+ressourceAsked);
+    if(ressourceAsked.equals("/")){
+      index();
     }else{
-      file = new File (PATH_TO_DOC+"/404.html");
-      // Send the response
-      // Send the headers
-      out.println("HTTP/1.0 404 Not found");
-      out.println("Content-Type: text/html");
-      out.println("Server: Bot");
-      // this blank line signals the end of the headers
-      out.println();
+      File file;
+      if(ressourceExist(ressourceAsked)){
+        if(ressourceAsked.startsWith("/admin")) {
+          file = new File(PATH_TO_DOC + "/403.html");
+          // Send the headers
+          out.println("HTTP/1.0 403 Forbidden");
+          out.println("Date:" + getNow());
+          out.println("Content-Type: text/html");
+        }else{
+          file=new File(PATH_TO_DOC+ressourceAsked);
+          String content = getContentType(ressourceAsked);
+          // Send the headers
+          out.println("HTTP/1.0 200 OK");
+          out.println("Date:" + getNow());
+          out.println("Content-Type: "+content);
+        }
+        out.println("Content-Length: " + file.length());
+        out.println("Server: Bot");
+        out.println();
+
+      }else{
+        file = new File (PATH_TO_DOC+"/404.html");
+        // Send the response
+        // Send the headers
+        out.println("HTTP/1.0 404 Not found");
+        out.println("Date:"+getNow());
+        out.println("Content-Type: text/html");
+        out.println("Content-Length: " + file.length());
+        out.println("Server: Bot");
+        // this blank line signals the end of the headers
+        out.println();
+      }
+      out.flush();
+      // Send the HTML page
+      sendFileInBytes(file);
     }
+  }
+
+  /**
+   * METHOD HTTP NOT ALLOWED
+   * When a method not implemented is called
+   * Return:
+   *  - 405 : method not allowed
+   */
+  public void doDefault(){
+    // Send the response
+    // Send the headers
+    File file=new File(PATH_TO_DOC+"/405.html");
+    out.println("HTTP/1.0 405 Method Not Allowed");
+    out.println("Date:"+getNow());
+    out.println("Content-Type: text/html");
+    out.println("Content-Length: " + file.length());
+    out.println("Server: Bot");
+    // this blank line signals the end of the headers
+    out.println("");
     out.flush();
     // Send the HTML page
     sendFileInBytes(file);
   }
-
 
   protected void start() {
     ServerSocket s;
@@ -309,9 +410,7 @@ public class WebServer {
           request+=str+" ";
         }
         // Treat the request received
-        System.out.println("************");
         treatRequest();
-        System.out.println("************");
 
         // If the request has a body we read it
         if(contentLength>0){
@@ -342,8 +441,7 @@ public class WebServer {
             doHead();
             break;
           default:
-            defaultMethod();
-            break;
+            doDefault();
         }
         remote.close();
       } catch (Exception e) {
@@ -370,12 +468,33 @@ public class WebServer {
 
   // return supported MIME Types
   private String getContentType(String fileRequested) {
-    if (fileRequested.endsWith(".png")  ||  fileRequested.endsWith(".jpeg") ||  fileRequested.endsWith(".jpg"))
-      return "Image";
-    else if (fileRequested.endsWith(".mp3"))
-      return "audio";
-    else
-      return "text";
+    if (fileRequested.endsWith(".png")){
+      return "image/png";
+    } else if (fileRequested.endsWith(".jpeg")) {
+      return "image/jpeg";
+    } else if (fileRequested.endsWith(".jpg")){
+      return "image/jpg";
+    }else if (fileRequested.endsWith(".mp3")){
+      return "audio/mp3";
+    } else if(fileRequested.endsWith(".wav") ) {
+      return "audio/wav";
+    }else if (fileRequested.endsWith(".mp4")) {
+      return "video/mp4";
+    }else if (fileRequested.endsWith(".html")) {
+      return "text/html";
+    }else if (fileRequested.endsWith(".css")) {
+      return "text/css";
+    }else if (fileRequested.endsWith(".txt")) {
+      return "text/plain;charset=UTF-8";
+    }else if (fileRequested.endsWith(".pdf")) {
+      return "application/pdf";
+    }else if (fileRequested.endsWith(".xml")) {
+      return "application/xml";
+    }else if (fileRequested.endsWith(".bmp") || fileRequested.endsWith(".webp") || fileRequested.endsWith(".gif")) {
+      return "image";
+    }else {
+      return "application";
+    }
   }
 
   /**

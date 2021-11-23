@@ -1,17 +1,51 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title> Donne ici un titre à ta page html </title>
+        <title> Mini serveur web </title>
         <meta charset="UTF-8">
     </head>
     <body>
-        <h1> Voici le titre principal </h1>
-        <p> Et voilà le texte de la page</p>
-        <h2> On crée les autres titres de la même manière </h2>
-        <h3> On peut créer jusqu'à six niveaux de titres </h3>
-        <h4> Titre de niveau 4 </h4>
-        <h5> Titre de niveau 5 </h5>
-        <h6> Titre de niveau 6 </h6>
-        <p> Chaque titre peut contenir du texte, comme ici </p>
+        <h1> Voici les différentes ressources accessibles sur notre serveur : </h1>
+        <ol>
+            <li>Fichiers texte :</li>
+            <ul>
+                <li><a href="index.html">Page HTML d'index (page actuelle)</a></li>
+                <li><a href="adder.html">Page HTML dynamique avec du javascript (adder.html)</a></li>
+                <li><a href="image.html">Page HTML contenant une image</a></li>
+                <li><a href="del.txt">Chargement d'un fichier .txt</a></li>
+                <li><a href="styleError404.css">Chargement d'un fichier .css</a></li>
+            </ul>
+            </br>
+            <li>Images :</li>
+            <ul>
+                <li><a href="images/appareil_photo.png">Chargement d'une image .png</a></li>
+                <li><a href="images/minions.jpg">Chargement d'une image .jpg</a></li>
+            </ul>
+            </br>
+            <li>Fichiers audio :</li>
+            <ul>
+                <li><a href="audio/Daft_Punk-Digital_Love.mp3">Chargement d'un fichier audio .mp3</a></li>
+                <li><a href="audio/chant_de_marin.wav">Chargement d'un fichier audio .wav</a></li>
+            </ul>
+            </br>
+            <li>Fichiers vidéo :</li>
+            <ul>
+                <li><a href="video/sample-mp4.mp4">Chargement d'un fichier vidéo .mp4</a></li>
+            </ul>
+            </br>
+            <li>Fichiers PDF :</li>
+            <ul>
+                <li><a href="pdf/pdf-test.pdf">Chargement d'un fichier PDF</a></li>
+            </ul>
+            </br>
+            <li>Mise en avant d'erreur :</li>
+            <ul>
+                <li><a href="inexistant.html">Page inexistante (erreur 404)</a></li>
+                <li><a href="admin/password.txt">Accès interdit (erreur 403)</a></li>
+            </ul>
+
+
+        </ol>
+
     </body>
 </html>
