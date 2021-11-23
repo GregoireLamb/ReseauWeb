@@ -40,11 +40,20 @@ public class WebServer {
   public WebServer(){
   }
 
+  /**
+   * Give under a given format, the date "now"
+   * @return now
+   */
   public String getNow(){
     SimpleDateFormat sdf=new SimpleDateFormat("EEE dd MMM yyyy HH:mm:ss zzz", Locale.FRANCE);
     Date now= new Date();
     return sdf.format(now);
   }
+
+  /**
+   * Send a file in bytes on the output stream of the socket
+   * @param file, the file to send
+   */
   public void sendFileInBytes(File file){
     try {
       byte[] data = readFileData(file, (int) file.length());
@@ -63,6 +72,9 @@ public class WebServer {
     }
   }
 
+  /**
+   * Treat the request to catch different element of the request
+   */
   public void treatRequest(){
     if(!request.isEmpty()){
       StringTokenizer convertRequest=new StringTokenizer(request);
@@ -77,11 +89,12 @@ public class WebServer {
         }
       }
     }
-
+    /*
     System.out.println("method: "+method);
     System.out.println("ressource: "+ressourceAsked);
     System.out.println("content-length: "+contentLength);
     System.out.println("content-type: "+contentType);
+    */
     int i = ressourceAsked.lastIndexOf('.');
     if (i >= 0) {
       ressourceExtension = ressourceAsked.substring(i+1);
@@ -89,6 +102,11 @@ public class WebServer {
     System.out.println("ressource extension: "+ressourceExtension);
   }
 
+  /**
+   * Check if a given ressource exists
+   * @param ressource
+   * @return true|false
+   */
   public boolean ressourceExist(String ressource){
     try{
       File file=new File(PATH_TO_DOC+ressource);
@@ -117,9 +135,19 @@ public class WebServer {
 
   }
 
+  /**
+   * METHOD HTTP DELETE
+   * Delete the ressource specified in the URL
+   * Returns :
+   *  - 204 : file deleted, no content
+   *  - 500 : file not deleted, internal server error
+   *  - 404 : file not deleted, not found
+   */
   public void doDelete(){
+    // if the ressource exists
     if(ressourceExist(ressourceAsked)){
         File file=new File(PATH_TO_DOC+ressourceAsked);
+        // Attempt to delete the file
         if(file.delete()){
             // Send the headers
             out.println("HTTP/1.0 204 No Content");
@@ -138,11 +166,23 @@ public class WebServer {
     out.flush();
   }
 
+  /**
+   * METHOD HTTP PUT
+   * Create or overwrite the ressource specified in the URL
+   * with the content in the body
+   * Returns :
+   *  - 204 : file overwrite, no content
+   *  - 201 : file created
+   *  - 500 : internal server error
+   */
   public void doPut(){
+    FileWriter fileWriter;
+    // If the ressource exists
     if(ressourceExist(ressourceAsked)){
       File file=new File(PATH_TO_DOC+ressourceAsked);
       try {
-        FileWriter fileWriter=new FileWriter(file);
+        // Overwrite the existing file with the body request
+        fileWriter=new FileWriter(file);
         fileWriter.write(bodyRequest);
         fileWriter.flush();
         fileWriter.close();
@@ -153,12 +193,27 @@ public class WebServer {
         out.println("HTTP/1.0 500 Internal Server Error");
       }
     }else{
-      String[] findDirectories=ressourceAsked.split("/");
-      if(findDirectories.length>1){
-
+      // The ressource doesn't exist
+      int index =ressourceAsked.lastIndexOf("/");
+      String newDirectories=ressourceAsked.substring(0,index);
+      // Creation of possible new directories
+      File file=new File(PATH_TO_DOC+newDirectories);
+      file.mkdirs();
+      // Creation of the new file
+      file=new File(PATH_TO_DOC+ressourceAsked);
+      try {
+        // Write the body request into the new file
+        file.createNewFile();
+        fileWriter = new FileWriter(file);
+        fileWriter.write(bodyRequest);
+        fileWriter.flush();
+        fileWriter.close();
+        // Send the headers
+        out.println("HTTP/1.0 201 Created");
+      } catch (IOException e) {
+        // Send the headers
+        out.println("HTTP/1.0 500 Internal Server Error");
       }
-      // Send the headers
-      out.println("HTTP/1.0 201 Created");
     }
     out.println("Date:"+getNow());
     out.println("Server: Bot");
@@ -171,6 +226,13 @@ public class WebServer {
 
   }
 
+  /**
+   * METHOD HTTP GET
+   * Send the ressource specified in the URL
+   * Returns :
+   *  - 200 : file sent, ok
+   *  - 404 : file not found
+   */
   public void doGet(){
     File file;
     if(ressourceExist(ressourceAsked)){
@@ -201,9 +263,7 @@ public class WebServer {
     sendFileInBytes(file);
   }
 
-  /**
-   * WebServer constructor.
-   */
+
   protected void start() {
     ServerSocket s;
 
@@ -235,25 +295,25 @@ public class WebServer {
         System.out.println("Connection, sending data.");
         BufferedReader in = new BufferedReader(new InputStreamReader(
            remote.getInputStream()));
-        //DataInputStream in=new DataInputStream(remote.getInputStream());
 
         out = new PrintWriter(remote.getOutputStream());
         outByte=new BufferedOutputStream(remote.getOutputStream());
 
-        // read the data sent. We basically ignore it,
-        // stop reading once a blank line is hit. This
-        // blank line signals the end of the client HTTP
-        // headers.
+        // read the data sent. Stop reading once a blank
+        // line is hit. This blank line signals the end
+        // of the client HTTP headers.
         String str = ".";
         int contentLength1=0;
         while (str != null && !str.equals("")) {
           str = in.readLine();
           request+=str+" ";
         }
+        // Treat the request received
         System.out.println("************");
         treatRequest();
         System.out.println("************");
 
+        // If the request has a body we read it
         if(contentLength>0){
           int read;
           while((read=in.read())!=-1){
@@ -264,7 +324,7 @@ public class WebServer {
           }
           System.out.println(bodyRequest);
         }
-
+        
         switch (method){
           case "GET":
             doGet();
@@ -288,6 +348,7 @@ public class WebServer {
         remote.close();
       } catch (Exception e) {
         System.out.println("Error: " + e);
+        e.printStackTrace();
       }
     }
   }
@@ -323,11 +384,8 @@ public class WebServer {
    * @param args
    *            Command line parameters are not used.
    */
-  public static void main(String args[]) {
+  public static void main(String args[]) throws IOException {
     WebServer ws = new WebServer();
     ws.start();
-
-    File file=new File("doc/test");
-    System.out.println(file.mkdirs());
   }
 }
