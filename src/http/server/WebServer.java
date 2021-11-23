@@ -26,14 +26,18 @@ import java.util.StringTokenizer;
  */
 public class WebServer {
   private String request;
+  private String bodyRequest;
   private String method;
   private String ressourceAsked;
   private String ressourceExtension;
+  private String contentType;
+  private int contentLength;
+
   private final String PATH_TO_DOC="./doc";
   private PrintWriter out;
   private BufferedOutputStream outByte;
-  public WebServer(){
 
+  public WebServer(){
   }
 
   public String getNow(){
@@ -64,9 +68,20 @@ public class WebServer {
       StringTokenizer convertRequest=new StringTokenizer(request);
       method=convertRequest.nextToken();
       ressourceAsked=convertRequest.nextToken();
+      while(convertRequest.hasMoreTokens()){
+        String str=convertRequest.nextToken();
+        if(str.toLowerCase().startsWith("content-length")){
+          contentLength=Integer.parseInt(convertRequest.nextToken());
+        }else if(str.toLowerCase().startsWith("content-type")){
+          contentType=convertRequest.nextToken().split(";")[0];
+        }
+      }
     }
+
     System.out.println("method: "+method);
     System.out.println("ressource: "+ressourceAsked);
+    System.out.println("content-length: "+contentLength);
+    System.out.println("content-type: "+contentType);
     int i = ressourceAsked.lastIndexOf('.');
     if (i >= 0) {
       ressourceExtension = ressourceAsked.substring(i+1);
@@ -124,10 +139,35 @@ public class WebServer {
   }
 
   public void doPut(){
+    if(ressourceExist(ressourceAsked)){
+      File file=new File(PATH_TO_DOC+ressourceAsked);
+      try {
+        FileWriter fileWriter=new FileWriter(file);
+        fileWriter.write(bodyRequest);
+        fileWriter.flush();
+        fileWriter.close();
+        // Send the headers
+        out.println("HTTP/1.0 204 No Content");
+      } catch (IOException e) {
+        // Send the headers
+        out.println("HTTP/1.0 500 Internal Server Error");
+      }
+    }else{
+      String[] findDirectories=ressourceAsked.split("/");
+      if(findDirectories.length>1){
 
+      }
+      // Send the headers
+      out.println("HTTP/1.0 201 Created");
+    }
+    out.println("Date:"+getNow());
+    out.println("Server: Bot");
+    // this blank line signals the end of the headers
+    out.println();
+    out.flush();
   }
 
-  public void dohead(){
+  public void doHead(){
 
   }
 
@@ -171,7 +211,7 @@ public class WebServer {
     System.out.println("(press ctrl-c to exit)");
     try {
       // create the main server socket
-      s = new ServerSocket(3000);
+      s = new ServerSocket(3001);
     } catch (Exception e) {
       System.out.println("Error: " + e);
       return;
@@ -182,12 +222,21 @@ public class WebServer {
       try {
         // wait for a connection
         Socket remote = s.accept();
+
         request="";
+        bodyRequest="";
+        method="";
+        ressourceAsked="";
+        ressourceExtension="";
+        contentType="";
+        contentLength=0;
 
         // remote is now the connected socket
         System.out.println("Connection, sending data.");
         BufferedReader in = new BufferedReader(new InputStreamReader(
-            remote.getInputStream()));
+           remote.getInputStream()));
+        //DataInputStream in=new DataInputStream(remote.getInputStream());
+
         out = new PrintWriter(remote.getOutputStream());
         outByte=new BufferedOutputStream(remote.getOutputStream());
 
@@ -196,6 +245,7 @@ public class WebServer {
         // blank line signals the end of the client HTTP
         // headers.
         String str = ".";
+        int contentLength1=0;
         while (str != null && !str.equals("")) {
           str = in.readLine();
           request+=str+" ";
@@ -203,6 +253,18 @@ public class WebServer {
         System.out.println("************");
         treatRequest();
         System.out.println("************");
+
+        if(contentLength>0){
+          int read;
+          while((read=in.read())!=-1){
+            bodyRequest+=(char)read;
+            if(bodyRequest.length()==contentLength){
+              break;
+            }
+          }
+          System.out.println(bodyRequest);
+        }
+
         switch (method){
           case "GET":
             doGet();
@@ -217,7 +279,7 @@ public class WebServer {
             doPost();
             break;
           case "HEAD":
-            dohead();
+            doHead();
             break;
           default:
             defaultMethod();
@@ -264,5 +326,8 @@ public class WebServer {
   public static void main(String args[]) {
     WebServer ws = new WebServer();
     ws.start();
+
+    File file=new File("doc/test");
+    System.out.println(file.mkdirs());
   }
 }
