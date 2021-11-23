@@ -147,7 +147,50 @@ public class WebServer {
   }
 
   public void doPost(){
-
+    FileWriter fileWriter;
+    // If the ressource exists
+    if(ressourceExist(ressourceAsked)){
+      File file=new File(PATH_TO_DOC+ressourceAsked);
+      try {
+        // Write at the end the existing file with the body request
+        fileWriter=new FileWriter(file,true);
+        fileWriter.write(bodyRequest);
+        fileWriter.flush();
+        fileWriter.close();
+        // Send the headers
+        out.println("HTTP/1.0 201 Created file");
+      } catch (IOException e) {
+        // Send the headers
+        out.println("HTTP/1.0 500 Internal Server Error");
+      }
+    }else{
+      // The ressource doesn't exist
+      int index =ressourceAsked.lastIndexOf("/");
+      String newDirectories=ressourceAsked.substring(0,index);
+      // Creation of possible new directories
+      File file=new File(PATH_TO_DOC+newDirectories);
+      file.mkdirs();
+      // Creation of the new file
+      file=new File(PATH_TO_DOC+ressourceAsked);
+      try {
+        // Write the body request into the new file
+        file.createNewFile();
+        fileWriter = new FileWriter(file);
+        fileWriter.write(bodyRequest);
+        fileWriter.flush();
+        fileWriter.close();
+        // Send the headers
+        out.println("HTTP/1.0 201 Created");
+      } catch (IOException e) {
+        // Send the headers
+        out.println("HTTP/1.0 500 Internal Server Error");
+      }
+    }
+    out.println("Date:"+getNow());
+    out.println("Server: Bot");
+    // this blank line signals the end of the headers
+    out.println();
+    out.flush();
   }
 
   /**
