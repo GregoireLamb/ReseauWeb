@@ -27,6 +27,7 @@ import java.util.StringTokenizer;
 public class WebServer {
   private String request;
   private String bodyRequest;
+  private byte[] bodyBytes;
   private String method;
   private String ressourceAsked;
   private String ressourceExtension;
@@ -146,51 +147,80 @@ public class WebServer {
     sendFileInBytes(file);
   }
 
+  /**
+   * METHOD HTTP POST
+   * Create or write after the ressource specified in the URL
+   * with the content in the body
+   * Returns :
+   *  - 200 : body added to existing file
+   *  - 201 : file created
+   *  - 403 : not allowed
+   *  - 405 : Method not allowed
+   *  - 500 : internal server error
+   */
   public void doPost(){
     FileWriter fileWriter;
-    // If the ressource exists
-    if(ressourceExist(ressourceAsked)){
-      File file=new File(PATH_TO_DOC+ressourceAsked);
-      try {
-        // Write at the end the existing file with the body request
-        fileWriter=new FileWriter(file,true);
-        fileWriter.write(bodyRequest);
-        fileWriter.flush();
-        fileWriter.close();
-        // Send the headers
-        out.println("HTTP/1.0 201 Created file");
-      } catch (IOException e) {
-        // Send the headers
-        out.println("HTTP/1.0 500 Internal Server Error");
-      }
-    }else{
-      // The ressource doesn't exist
-      int index =ressourceAsked.lastIndexOf("/");
-      String newDirectories=ressourceAsked.substring(0,index);
-      // Creation of possible new directories
-      File file=new File(PATH_TO_DOC+newDirectories);
-      file.mkdirs();
-      // Creation of the new file
-      file=new File(PATH_TO_DOC+ressourceAsked);
-      try {
-        // Write the body request into the new file
-        file.createNewFile();
-        fileWriter = new FileWriter(file);
-        fileWriter.write(bodyRequest);
-        fileWriter.flush();
-        fileWriter.close();
-        // Send the headers
-        out.println("HTTP/1.0 201 Created");
-      } catch (IOException e) {
-        // Send the headers
-        out.println("HTTP/1.0 500 Internal Server Error");
-      }
+    if(ressourceAsked.startsWith("/admin")){
+      out.println("HTTP/1.0 403 Forbidden");
+      out.println("Date:"+getNow());
+      out.println("Server: Bot");
+      // this blank line signals the end of the headers
+      out.println();
+      out.flush();
+      return;
     }
-    out.println("Date:"+getNow());
-    out.println("Server: Bot");
-    // this blank line signals the end of the headers
-    out.println();
-    out.flush();
+    // If the ressource exists
+    if((ressourceExtension.equals("txt")||ressourceExtension.equals(""))){
+      if(ressourceExist(ressourceAsked)){
+        File file=new File(PATH_TO_DOC+ressourceAsked);
+        try {
+          // Write at the end the existing file with the body request
+          fileWriter=new FileWriter(file,true);
+          fileWriter.write(bodyRequest);
+          fileWriter.flush();
+          fileWriter.close();
+          // Send the headers
+          out.println("HTTP/1.0 200 added to file");
+        } catch (IOException e) {
+          // Send the headers
+          out.println("HTTP/1.0 500 Internal Server Error");
+        }
+      }else{
+        // The ressource doesn't exist
+        int index =ressourceAsked.lastIndexOf("/");
+        String newDirectories=ressourceAsked.substring(0,index);
+        // Creation of possible new directories
+        File file=new File(PATH_TO_DOC+newDirectories);
+        file.mkdirs();
+        // Creation of the new file
+        file=new File(PATH_TO_DOC+ressourceAsked);
+        try {
+          // Write the body request into the new file
+          file.createNewFile();
+          fileWriter=new FileWriter(file);
+          fileWriter.write(bodyRequest);
+          fileWriter.flush();
+          fileWriter.close();
+          // Send the headers
+          out.println("HTTP/1.0 201 Created");
+        } catch (IOException e) {
+          // Send the headers
+          out.println("HTTP/1.0 500 Internal Server Error");
+        }
+      }
+      out.println("Date:"+getNow());
+      out.println("Server: Bot");
+      // this blank line signals the end of the headers
+      out.println();
+      out.flush();
+    }else{
+      out.println("HTTP/1.0 405 Method not allowed");
+    }
+      out.println("Date:"+getNow());
+      out.println("Server: Bot");
+      // this blank line signals the end of the headers
+      out.println();
+      out.flush();
   }
 
   /**
@@ -285,6 +315,7 @@ public class WebServer {
     out.println();
     out.flush();
   }
+
 
   /**
    * METHOD HTTP HEAD
@@ -447,16 +478,16 @@ public class WebServer {
         // line is hit. This blank line signals the end
         // of the client HTTP headers.
         String str = ".";
-        int contentLength1=0;
         while (str != null && !str.equals("")) {
           str = in.readLine();
           request+=str+" ";
         }
+        System.out.println(request);
         // Treat the request received
         treatRequest();
-
+        System.out.println("end of the header");
         // If the request has a body we read it
-        if(contentLength>0){
+        if(contentLength>0 && (ressourceExtension.equals("txt")||ressourceExtension.equals(""))){
           int read;
           while((read=in.read())!=-1){
             bodyRequest+=(char)read;
@@ -464,7 +495,19 @@ public class WebServer {
               break;
             }
           }
-          System.out.println(bodyRequest);
+          if(contentLength>0 && (ressourceExtension.equals("jpg")||ressourceExtension.equals("png"))){
+            bodyBytes = new byte[contentLength] ;
+            byte readed;
+            int i = 0;
+            while((readed=(byte)in.read())!=-1){
+              bodyBytes[i] = readed;
+              i++;
+              if(i==contentLength){
+                break;
+              }
+            }
+          }
+          System.out.println(bodyBytes);
         }
 
         switch (method){
