@@ -332,7 +332,7 @@ public class WebServer {
       out.println("HTTP/1.0 200 OK");
       out.println("Date:"+getNow());
       out.println("Content-Type: text/html");
-      out.println("Content-Length: " + file.length());
+      //out.println("Content-Length: " + file.length());
     }else{
       if(ressourceExist(ressourceAsked)){
         if(ressourceAsked.startsWith("/admin")) {
